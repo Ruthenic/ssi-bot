@@ -52,11 +52,8 @@ author_list = [
 	'vredditdownloader', 'video_descriptionbot',
 	'WaterIsWetBot', 'WellWishesBot', 'WikiTextBot', 'WikiSummarizerBot',
 	'xkcd-Hyphen-bot', 'xkcd_transcriber',
-	'YoMammaJokebot', 'youtubefactsbot', 'YTubeInfoBot'
+	'YoMammaJokebot', 'youtubefactsbot', 'YTubeInfoBot','[removed]'
 	]
-
-if config['DEFAULT']['negative_users']:
-    author_list += config['DEFAULT']['negative_users'].split(",")
 
 lowercase_author_list = [a.lower() for a in author_list]
 
@@ -82,6 +79,9 @@ training_subreddits = []
 if config['DEFAULT']['training_subreddits']:
 	training_subreddits = config['DEFAULT']['training_subreddits'].split(',')
 
+training_subreddits=[x.lower() for x in training_subreddits]
+
+# Keywords to be stripped from the dataset output
 
 def tag_submission(sub):
 
@@ -163,7 +163,6 @@ def gather_comments_for_submission(sub):
 
 		for child_comment in top_children:
 			parent_parent = get_parent_parent(child_comment)
-
 			# Check that this record's parent text is not identical, because we would prefer variation.
 			# Skip ahead to the next comment
 			if type(parent) == db_Comment and parent.body.lower() == child_comment.body.lower():
@@ -215,7 +214,7 @@ def main():
 
 	selftext_submissions = list(db_Submission.select()
 		.where((fn.Lower(db_Submission.subreddit).in_(training_subreddits)) &
-				(db_Submission.selftext) &
+				(db_Submission.is_self == True) &
 				(~fn.Lower(db_Submission.title).regexp(mega_negative_keywords_regex)) &
 				(~fn.Lower(db_Submission.selftext).regexp(mega_negative_keywords_regex)) &
 				(fn.Lower(db_Submission.author).not_in(lowercase_author_list))))
