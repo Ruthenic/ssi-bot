@@ -98,7 +98,7 @@ class RedditIO(threading.Thread, LogicMixin):
 		# The overall concept of these default values are to increase two types of replies:
 		# 1) Keyword based, where the bot replies to comments with positive keywords that are related to its training material
 		# 2) Replying where human users replied directly to the bot and to continue that comment chain.
-		self._base_reply_probability = self._config[self._bot_username].getfloat('base_reply_probability', -0.1)
+		self._base_reply_probability = self._config[self._bot_username].getfloat('base_reply_probability', 0.1)
 		self._comment_depth_reply_penalty = self._config[self._bot_username].getfloat('comment_depth_reply_penalty', 0.05)
 		self._positive_keyword_reply_boost = self._config[self._bot_username].getfloat('positive_keyword_reply_boost', 0.5)
 		self._human_author_reply_boost = self._config[self._bot_username].getfloat('human_author_reply_boost', 0.3)
@@ -123,7 +123,7 @@ class RedditIO(threading.Thread, LogicMixin):
 
 			try:
 				logging.info(f"Beginning to process inbox stream")
-				self.poll_inbox_stream()
+				#self.poll_inbox_stream()
 			except:
 				logging.exception("Exception occurred while processing the inbox streams")
 
@@ -209,6 +209,9 @@ class RedditIO(threading.Thread, LogicMixin):
 		# Merge the streams in a single loop to DRY the code
 		for praw_thing in chain_listing_generators(submissions, comments):
 
+			if isinstance(praw_thing, dict):
+				praw_thing = self._praw.submission(url=praw_thing["data"]["url"])
+
 			# Check in the database to see if it already exists
 			record = self.is_praw_thing_in_database(praw_thing)
 
@@ -262,10 +265,12 @@ class RedditIO(threading.Thread, LogicMixin):
 			# Get the praw object of the original thing we are going to reply to
 			source_praw_thing = None
 
+			print(post_job.source_name)
+
 			if post_job.source_name[:3] == 't1_':
 				# Comment
 				source_praw_thing = self._praw.comment(post_job.source_name[3:])
-			elif post_job.source_name[:3] == 't3_':
+			elif post_job.source_name[:3] == 't7_':
 				# Submission
 				source_praw_thing = self._praw.submission(post_job.source_name[3:])
 			elif post_job.source_name[:3] == 't4_':
@@ -403,6 +408,10 @@ class RedditIO(threading.Thread, LogicMixin):
 	def synchronize_bots_comments_submissions(self):
 		# at first run, pick up Bot's own recent submissions and comments
 		# to 'sync' the database and prevent duplicate replies
+
+		return #TODO: fix this function on saidit
+
+		print(self._praw.user.me().name)
 
 		submissions = self._praw.redditor(self._praw.user.me().name).submissions.new(limit=20)
 		comments = self._praw.redditor(self._praw.user.me().name).comments.new(limit=100)
@@ -544,7 +553,7 @@ class RedditIO(threading.Thread, LogicMixin):
 			submission = praw_thing
 
 		if submission:
-			if submission.author is None or submission.removed_by_category is not None:
+			if submission.author is None:
 				logging.error(f'Submission {submission} has been removed or deleted.')
 				return True
 
