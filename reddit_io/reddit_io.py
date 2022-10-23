@@ -267,7 +267,7 @@ class RedditIO(threading.Thread, LogicMixin):
 
 			print(post_job.source_name)
 
-			if post_job.source_name[:3] == 't1_':
+			if post_job.source_name[:3] == 't3_':
 				# Comment
 				source_praw_thing = self._praw.comment(post_job.source_name[3:])
 			elif post_job.source_name[:3] == 't7_':
